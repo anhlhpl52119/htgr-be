@@ -1,0 +1,24 @@
+-- +goose Up
+CREATE TABLE IF NOT EXISTS tables (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    restaurant_id UUID REFERENCES restaurants(id) ON DELETE CASCADE,
+    table_number VARCHAR(20) NOT NULL,
+    status VARCHAR(50) DEFAULT 'available', 
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TRIGGER tr_tables_update BEFORE UPDATE ON tables FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+CREATE TABLE IF NOT EXISTS bookings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    table_id UUID REFERENCES tables(id) ON DELETE CASCADE,
+    customer_name VARCHAR(255) NOT NULL,
+    booking_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TRIGGER tr_bookings_update BEFORE UPDATE ON bookings FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- +goose Down
+DROP TABLE IF EXISTS bookings CASCADE;
+DROP TABLE IF EXISTS tables CASCADE;
