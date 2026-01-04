@@ -29,20 +29,20 @@ type registerUserRequest struct {
 	Bio      string `json:"bio"`
 }
 
-func (h *UserHandler) validateRegisterRequest(req *registerUserRequest) error {
-	if req.Username == "" {
+func (r *registerUserRequest) validate() error {
+	if r.Username == "" {
 		return errors.New("username is required")
 	}
-	if req.Email == "" {
+	if r.Email == "" {
 		return errors.New("email is required")
 	}
 
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	if !emailRegex.MatchString(req.Email) {
+	if !emailRegex.MatchString(r.Email) {
 		return errors.New("email is not valid")
 	}
 
-	if len(req.Phone) < 3 {
+	if len(r.Phone) < 3 {
 		return errors.New("phone is not valid")
 	}
 
@@ -58,7 +58,7 @@ func (h *UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.validateRegisterRequest(&req)
+	err = req.validate()
 	if err != nil {
 		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": err.Error()})
 		return
