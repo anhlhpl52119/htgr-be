@@ -2,7 +2,7 @@ package store
 
 import (
 	"database/sql"
-	"go-todo-apis/internal/utils"
+	"htrr-apis/internal/utils"
 	"time"
 )
 

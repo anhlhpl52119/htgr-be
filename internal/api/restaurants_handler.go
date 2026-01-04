@@ -2,8 +2,8 @@ package api
 
 import (
 	"encoding/json"
-	"go-todo-apis/internal/store"
-	"go-todo-apis/internal/utils"
+	"htrr-apis/internal/store"
+	"htrr-apis/internal/utils"
 	"log"
 	"net/http"
 	"strconv"

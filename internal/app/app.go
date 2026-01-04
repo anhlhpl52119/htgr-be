@@ -2,10 +2,10 @@ package app
 
 import (
 	"database/sql"
-	"go-todo-apis/internal/api"
-	"go-todo-apis/internal/store"
-	"go-todo-apis/internal/utils"
-	"go-todo-apis/migrations"
+	"htrr-apis/internal/api"
+	"htrr-apis/internal/store"
+	"htrr-apis/internal/utils"
+	"htrr-apis/migrations"
 	"log"
 	"net/http"
 	"os"

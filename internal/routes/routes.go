@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"go-todo-apis/internal/app"
+	"htrr-apis/internal/app"
 
 	"github.com/go-chi/chi/v5"
 )
