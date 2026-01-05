@@ -1,4 +1,5 @@
 -- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS tables (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     restaurant_id UUID REFERENCES restaurants(id) ON DELETE CASCADE,
@@ -18,7 +19,10 @@ CREATE TABLE IF NOT EXISTS bookings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TRIGGER tr_bookings_update BEFORE UPDATE ON bookings FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+-- +goose StatementEnd
 
 -- +goose Down
+-- +goose StatementBegin
 DROP TABLE IF EXISTS bookings CASCADE;
 DROP TABLE IF EXISTS tables CASCADE;
+-- +goose StatementEnd
