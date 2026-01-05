@@ -11,10 +11,10 @@ import (
 	"fmt"
 )
 
-func Open() (*sql.DB, error) {
-	fmt.Println("Connected to database...")
+func Open(dataSourceName string) (*sql.DB, error) {
+	fmt.Println("Connecting to database...")
 
-	db, err := sql.Open("pgx", "host=localhost user=postgres password=postgres dbname=postgres port=5433 sslmode=disable")
+	db, err := sql.Open("pgx", dataSourceName)
 	if err != nil {
 		return nil, fmt.Errorf("db: open %w", err)
 	}
