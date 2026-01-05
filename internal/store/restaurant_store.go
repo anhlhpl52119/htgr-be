@@ -2,8 +2,12 @@ package store
 
 import (
 	"database/sql"
+	"errors"
 	"htrr-apis/internal/utils"
+	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type PostgresRestaurantStore struct {
@@ -35,6 +39,8 @@ type SearchRestaurantParams struct {
 type RestaurantStore interface {
 	Create(*Restaurant) error
 	Search(SearchRestaurantParams) ([]Restaurant, int, error)
+	// Update(*Restaurant) error
+	GetRestaurantById(string) (*Restaurant, error)
 }
 
 func (pg *PostgresRestaurantStore) Create(restaurant *Restaurant) error {
@@ -97,4 +103,44 @@ func (pg *PostgresRestaurantStore) Search(params SearchRestaurantParams) ([]Rest
 	}
 
 	return list, total, nil
+}
+
+// func (pg *PostgresRestaurantStore) Update(restaurant *Restaurant) error {
+
+// }
+
+func (pg *PostgresRestaurantStore) GetRestaurantById(id string) (*Restaurant, error) {
+	restaurant := &Restaurant{}
+
+	q := `
+	SELECT id, name, address, phone, is_active, created_at, updated_at
+	FROM restaurants
+	WHERE id = $1
+	`
+
+	_, err := uuid.Parse(id)
+	if err != nil {
+		return nil, errors.New("Invalid id format")
+	}
+
+	id = strings.ReplaceAll(id, "\"", "'")
+	err = pg.db.QueryRow(q, id).Scan(
+		&restaurant.ID,
+		&restaurant.Name,
+		&restaurant.Address,
+		&restaurant.Phone,
+		&restaurant.IsActive,
+		&restaurant.CreatedAt,
+		&restaurant.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return restaurant, nil
 }

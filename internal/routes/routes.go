@@ -18,6 +18,7 @@ func SetupRoutes(app *app.Application) *chi.Mux {
 	// restaurants
 	r.Get("/restaurants", app.RestaurantHandler.HandleSearchRestaurant)
 	r.Post("/restaurant", app.RestaurantHandler.HandleCreateRestaurant)
+	r.Get("/restaurant/{id}", app.RestaurantHandler.HandleGetRestaurantById)
 
 	return r
 }

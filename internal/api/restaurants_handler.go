@@ -100,3 +100,26 @@ func parseIntOrDefault(value string, def int) int {
 	}
 	return v
 }
+
+func (h *RestaurantHandler) HandleGetRestaurantById(w http.ResponseWriter, r *http.Request) {
+	paramsId, err := utils.GetIdUrlParams(r)
+	if err != nil {
+		h.logger.Printf("ERROR: GetIdUrlParams %v", err)
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "invalid id"})
+		return
+	}
+
+	restaurant, err := h.store.GetRestaurantById(paramsId)
+	if err != nil {
+		h.logger.Printf("ERROR: GetRestaurantById: %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": err.Error()})
+		return
+	}
+
+	if restaurant == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"restaurant": restaurant})
+}
