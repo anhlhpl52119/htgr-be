@@ -123,3 +123,38 @@ func (h *RestaurantHandler) HandleGetRestaurantById(w http.ResponseWriter, r *ht
 
 	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"restaurant": restaurant})
 }
+
+func (h *RestaurantHandler) HandleUpdateRestaurant(w http.ResponseWriter, r *http.Request) {
+	var rqBody store.Restaurant
+	err := json.NewDecoder(r.Body).Decode(&rqBody)
+	if err != nil {
+		h.logger.Printf("ERROR: decode json failed %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "internal server error"})
+		return
+	}
+
+	if rqBody.ID == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "Id is required"})
+		return
+	}
+
+	restaurant, err := h.store.GetRestaurantById(rqBody.ID)
+	if err != nil {
+		h.logger.Printf("ERROR: GetRestaurantById %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": err.Error()})
+		return
+	}
+	if restaurant == nil {
+		utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error": "cannot find id"})
+		return
+	}
+
+	err = h.store.Update(restaurant)
+	if err != nil {
+		h.logger.Printf("ERROR: updateRestaurant %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "internal server error"})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"restaurant": restaurant})
+}

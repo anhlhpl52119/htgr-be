@@ -39,7 +39,7 @@ type SearchRestaurantParams struct {
 type RestaurantStore interface {
 	Create(*Restaurant) error
 	Search(SearchRestaurantParams) ([]Restaurant, int, error)
-	// Update(*Restaurant) error
+	Update(*Restaurant) error
 	GetRestaurantById(string) (*Restaurant, error)
 }
 
@@ -105,9 +105,26 @@ func (pg *PostgresRestaurantStore) Search(params SearchRestaurantParams) ([]Rest
 	return list, total, nil
 }
 
-// func (pg *PostgresRestaurantStore) Update(restaurant *Restaurant) error {
+func (pg *PostgresRestaurantStore) Update(restaurant *Restaurant) error {
+	q := `
+	UPDATE restaurant
+	WHERE id = $1
+	SET name = $2, address = $3, phone = $4, is_active = %5
+	`
 
-// }
+	_, err := pg.db.Exec(q,
+		restaurant.ID,
+		restaurant.Name,
+		restaurant.Address,
+		restaurant.Phone,
+		restaurant.IsActive)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (pg *PostgresRestaurantStore) GetRestaurantById(id string) (*Restaurant, error) {
 	restaurant := &Restaurant{}
