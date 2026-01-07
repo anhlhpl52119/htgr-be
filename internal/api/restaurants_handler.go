@@ -36,6 +36,33 @@ func (r *registerRestaurantRequest) Validate() error {
 	return nil
 }
 
+type bulkDeleteRestaurantRequest struct {
+	IDs      []string `json:"ids"`
+	Strategy string   `json:"strategy"`
+}
+
+func (r *bulkDeleteRestaurantRequest) Validate() error {
+	if len(r.IDs) == 0 {
+		return errors.New("ids array is required and cannot be empty")
+	}
+
+	validStrategies := map[string]bool{
+		"atomic":      true,
+		"partial":     true,
+		"best_effort": true,
+	}
+
+	if r.Strategy == "" {
+		r.Strategy = "atomic"
+	}
+
+	if !validStrategies[r.Strategy] {
+		return errors.New("invalid strategy: must be 'atomic', 'partial', or 'best_effort'")
+	}
+
+	return nil
+}
+
 func (h *RestaurantHandler) HandleCreateRestaurant(w http.ResponseWriter, r *http.Request) {
 	var reqBody registerRestaurantRequest
 	err := json.NewDecoder(r.Body).Decode(&reqBody)
@@ -199,4 +226,86 @@ func (h *RestaurantHandler) HandleDeleteRestaurant(w http.ResponseWriter, r *htt
 
 	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"message": "deleted~"})
 
+}
+
+func (h *RestaurantHandler) HandleBulkDeleteRestaurants(w http.ResponseWriter, r *http.Request) {
+	var req bulkDeleteRestaurantRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Printf("ERROR: Failed to decode request body, %v", err)
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": "invalid request body"})
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		h.logger.Printf("ERROR: Validation failed, %v", err)
+		utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": err.Error()})
+		return
+	}
+
+	switch req.Strategy {
+	case "atomic":
+		h.handleAtomicDelete(w, req.IDs)
+	case "partial":
+		h.handlePartialDelete(w, req.IDs)
+	case "best_effort":
+		h.handleBestEffortDelete(w, req.IDs)
+	}
+}
+
+func (h *RestaurantHandler) handleAtomicDelete(w http.ResponseWriter, ids []string) {
+	_, err := h.store.BulkDeleteAtomic(ids)
+	if err != nil {
+		if err.Error() == "Invalid id format" {
+			utils.WriteJSON(w, http.StatusBadRequest, utils.Envelope{"error": err.Error()})
+			return
+		}
+		if err == sql.ErrNoRows {
+			utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error": "one or more ids not found"})
+			return
+		}
+		h.logger.Printf("ERROR: BulkDeleteAtomic failed, %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "internal server error"})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"message": "deleted successfully"})
+}
+
+func (h *RestaurantHandler) handlePartialDelete(w http.ResponseWriter, ids []string) {
+	result, err := h.store.BulkDeletePartial(ids)
+	if err != nil {
+		h.logger.Printf("ERROR: BulkDeletePartial failed, %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "internal server error"})
+		return
+	}
+
+	status := http.StatusOK
+	if result.FailedCount > 0 && result.DeletedCount == 0 {
+		status = http.StatusNotFound
+	} else if result.FailedCount > 0 {
+		status = http.StatusPartialContent
+	}
+
+	utils.WriteJSON(w, status, utils.Envelope{
+		"deleted_count": result.DeletedCount,
+		"failed_count":  result.FailedCount,
+		"deleted_ids":   result.DeletedIDs,
+		"failed_ids":    result.FailedIDs,
+		"message":       "bulk delete completed with details",
+	})
+}
+
+func (h *RestaurantHandler) handleBestEffortDelete(w http.ResponseWriter, ids []string) {
+	count, err := h.store.BulkDeleteBestEffort(ids)
+	if err != nil {
+		h.logger.Printf("ERROR: BulkDeleteBestEffort failed, %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "internal server error"})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{
+		"deleted_count": count,
+		"message":       "deleted successfully",
+	})
 }
