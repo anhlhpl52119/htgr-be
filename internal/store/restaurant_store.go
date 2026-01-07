@@ -107,17 +107,18 @@ func (pg *PostgresRestaurantStore) Search(params SearchRestaurantParams) ([]Rest
 
 func (pg *PostgresRestaurantStore) Update(restaurant *Restaurant) error {
 	q := `
-	UPDATE restaurant
-	WHERE id = $1
-	SET name = $2, address = $3, phone = $4, is_active = %5
+	UPDATE restaurants
+	SET name = $1, address = $2, phone = $3, is_active = $4
+	WHERE id = $5
 	`
 
+	restaurant.ID = strings.ReplaceAll(restaurant.ID, "\"", "'")
 	_, err := pg.db.Exec(q,
-		restaurant.ID,
 		restaurant.Name,
 		restaurant.Address,
 		restaurant.Phone,
-		restaurant.IsActive)
+		restaurant.IsActive,
+		restaurant.ID)
 
 	if err != nil {
 		return err
@@ -127,8 +128,6 @@ func (pg *PostgresRestaurantStore) Update(restaurant *Restaurant) error {
 }
 
 func (pg *PostgresRestaurantStore) GetRestaurantById(id string) (*Restaurant, error) {
-	restaurant := &Restaurant{}
-
 	q := `
 	SELECT id, name, address, phone, is_active, created_at, updated_at
 	FROM restaurants
@@ -141,6 +140,8 @@ func (pg *PostgresRestaurantStore) GetRestaurantById(id string) (*Restaurant, er
 	}
 
 	id = strings.ReplaceAll(id, "\"", "'")
+
+	restaurant := &Restaurant{}
 	err = pg.db.QueryRow(q, id).Scan(
 		&restaurant.ID,
 		&restaurant.Name,
