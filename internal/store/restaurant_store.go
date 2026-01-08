@@ -41,6 +41,7 @@ type RestaurantStore interface {
 	Search(SearchRestaurantParams) ([]Restaurant, int, error)
 	Update(*Restaurant) error
 	GetRestaurantById(string) (*Restaurant, error)
+	Delete(string) error
 }
 
 func (pg *PostgresRestaurantStore) Create(restaurant *Restaurant) error {
@@ -161,4 +162,27 @@ func (pg *PostgresRestaurantStore) GetRestaurantById(id string) (*Restaurant, er
 	}
 
 	return restaurant, nil
+}
+
+func (pg *PostgresRestaurantStore) Delete(id string) error {
+	q := `
+	DELETE FROM restaurants WHERE id = $1
+	`
+
+	id = strings.ReplaceAll(id, "\"", "'")
+	result, err := pg.db.Exec(q, id)
+	if err != nil {
+		return err
+	}
+
+	rowEffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowEffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }
