@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"htrr-apis/internal/store"
@@ -180,4 +181,22 @@ func (h *RestaurantHandler) HandleUpdateRestaurant(w http.ResponseWriter, r *htt
 	}
 
 	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"restaurant": existingRestaurant})
+}
+
+func (h *RestaurantHandler) HandleDeleteRestaurant(w http.ResponseWriter, r *http.Request) {
+	id, err := utils.GetIdUrlParams(r)
+	if err != nil {
+		h.logger.Printf("ERROR: GetIdUrlParams, %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, utils.Envelope{"error": "internal server error"})
+		return
+	}
+
+	err = h.store.Delete(id)
+	if err == sql.ErrNoRows {
+		utils.WriteJSON(w, http.StatusNotFound, utils.Envelope{"error": "not found id"})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, utils.Envelope{"message": "deleted~"})
+
 }
