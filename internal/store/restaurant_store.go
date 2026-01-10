@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"htrr-apis/internal/utils"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -107,14 +106,18 @@ func (pg *PostgresRestaurantStore) Search(params SearchRestaurantParams) ([]Rest
 }
 
 func (pg *PostgresRestaurantStore) Update(restaurant *Restaurant) error {
+	_, err := uuid.Parse(restaurant.ID)
+	if err != nil {
+		return errors.New("Invalid id format")
+	}
+
 	q := `
 	UPDATE restaurants
 	SET name = $1, address = $2, phone = $3, is_active = $4
 	WHERE id = $5
 	`
 
-	restaurant.ID = strings.ReplaceAll(restaurant.ID, "\"", "'")
-	_, err := pg.db.Exec(q,
+	_, err = pg.db.Exec(q,
 		restaurant.Name,
 		restaurant.Address,
 		restaurant.Phone,
@@ -139,8 +142,6 @@ func (pg *PostgresRestaurantStore) GetRestaurantById(id string) (*Restaurant, er
 	if err != nil {
 		return nil, errors.New("Invalid id format")
 	}
-
-	id = strings.ReplaceAll(id, "\"", "'")
 
 	restaurant := &Restaurant{}
 	err = pg.db.QueryRow(q, id).Scan(
@@ -169,7 +170,11 @@ func (pg *PostgresRestaurantStore) Delete(id string) error {
 	DELETE FROM restaurants WHERE id = $1
 	`
 
-	id = strings.ReplaceAll(id, "\"", "'")
+	_, err := uuid.Parse(id)
+	if err != nil {
+		return errors.New("Invalid id format")
+	}
+
 	result, err := pg.db.Exec(q, id)
 	if err != nil {
 		return err
@@ -186,3 +191,4 @@ func (pg *PostgresRestaurantStore) Delete(id string) error {
 
 	return nil
 }
+

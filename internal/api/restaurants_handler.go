@@ -166,8 +166,8 @@ func (h *RestaurantHandler) HandleUpdateRestaurant(w http.ResponseWriter, r *htt
 	if rqBody.IsActive != nil {
 		existingRestaurant.IsActive = *rqBody.IsActive
 	}
-	if rqBody.Phone != nil {
-		existingRestaurant.Phone = *rqBody.Phone
+	if rqBody.Address != nil {
+		existingRestaurant.Address = *rqBody.Address
 	}
 	if rqBody.Phone != nil {
 		existingRestaurant.Phone = *rqBody.Phone
