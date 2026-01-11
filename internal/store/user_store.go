@@ -18,26 +18,26 @@ func NewPostgresUserStore(db *sql.DB) *PostgresUserStore {
 type User struct {
 	ID           string    `json:"id"`
 	Email        string    `json:"email"`
-	Phone        string    `json:"phone"`
-	Username     string    `json:"username"`
+	Role         string    `json:"role"`
 	PasswordHash string    `json:"password_hash"`
-	Bio          string    `json:"bio"`
+	IsActive     bool      `json:"is_active"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type UserStore interface {
-	CreateUser(*User) error
+	User(*User) error
+	GetById(string) (*User, error)
 }
 
-func (pg *PostgresUserStore) CreateUser(user *User) error {
+func (pg *PostgresUserStore) Create(user *User) error {
 	q := `
-	INSERT INTO users (email, phone, username, password_hash, bio)
-	VALUES ($1, $2, $3, $4, $5)
+	INSERT INTO users (email, role, password_hash, is_active)
+	VALUES ($1, $2, $3, $4)
 	RETURNING id, email, created_at, updated_at
 	`
 	err := pg.db.
-		QueryRow(q, user.Email, user.Phone, user.Username, user.PasswordHash, user.Bio).
+		QueryRow(q, user.Email, user.Role, user.PasswordHash, user.IsActive).
 		Scan(
 			&user.ID,
 			&user.Email,
@@ -51,6 +51,6 @@ func (pg *PostgresUserStore) CreateUser(user *User) error {
 	return nil
 }
 
-func (pg *PostgresUserStore) GetUserByID(id string) error {
-	return nil
+func (pg *PostgresUserStore) GetById(id string) (*User, error) {
+	return nil, nil
 }
