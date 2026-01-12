@@ -29,7 +29,7 @@ type User struct {
 }
 
 type UserStore interface {
-	User(*User) error
+	Create(*User) error
 	GetById(string) (*User, error)
 }
 
