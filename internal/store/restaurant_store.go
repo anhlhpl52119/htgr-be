@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type PostgresRestaurantStore struct {
@@ -35,12 +36,22 @@ type SearchRestaurantParams struct {
 	Name     string
 }
 
+type BulkDeleteResult struct {
+	DeletedCount int
+	FailedCount  int
+	DeletedIDs   []string
+	FailedIDs    []string
+}
+
 type RestaurantStore interface {
 	Create(*Restaurant) error
 	Search(SearchRestaurantParams) ([]Restaurant, int, error)
 	Update(*Restaurant) error
 	GetRestaurantById(string) (*Restaurant, error)
 	Delete(string) error
+	BulkDeleteAtomic([]string) (int, error)
+	BulkDeletePartial([]string) (*BulkDeleteResult, error)
+	BulkDeleteBestEffort([]string) (int, error)
 }
 
 func (pg *PostgresRestaurantStore) Create(restaurant *Restaurant) error {
@@ -192,3 +203,160 @@ func (pg *PostgresRestaurantStore) Delete(id string) error {
 	return nil
 }
 
+func (pg *PostgresRestaurantStore) BulkDeleteAtomic(ids []string) (int, error) {
+	// Validate all IDs upfront
+	for _, id := range ids {
+		_, err := uuid.Parse(id)
+		if err != nil {
+			return 0, errors.New("Invalid id format")
+		}
+	}
+
+	// Start transaction
+	tx, err := pg.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	// Delete with ANY clause for all IDs
+	q := `DELETE FROM restaurants WHERE id = ANY($1)`
+	result, err := tx.Exec(q, pq.Array(ids))
+	if err != nil {
+		return 0, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	// If no rows were deleted, return error
+	if rowsAffected == 0 {
+		return 0, sql.ErrNoRows
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+
+	return int(rowsAffected), nil
+}
+
+func (pg *PostgresRestaurantStore) BulkDeletePartial(ids []string) (*BulkDeleteResult, error) {
+	result := &BulkDeleteResult{
+		DeletedIDs: []string{},
+		FailedIDs:  []string{},
+	}
+
+	// Separate valid and invalid IDs
+	validIDs := []string{}
+	for _, id := range ids {
+		_, err := uuid.Parse(id)
+		if err != nil {
+			result.FailedIDs = append(result.FailedIDs, id)
+			result.FailedCount++
+			continue
+		}
+		validIDs = append(validIDs, id)
+	}
+
+	// If no valid IDs, return early
+	if len(validIDs) == 0 {
+		return result, nil
+	}
+
+	// Start transaction
+	tx, err := pg.db.Begin()
+	if err != nil {
+		return result, err
+	}
+	defer tx.Rollback()
+
+	// First, query which valid IDs exist in the database
+	existingQuery := `SELECT id FROM restaurants WHERE id = ANY($1)`
+	rows, err := tx.Query(existingQuery, pq.Array(validIDs))
+	if err != nil {
+		return result, err
+	}
+
+	existingSet := make(map[string]bool)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return result, err
+		}
+		existingSet[id] = true
+	}
+	rows.Close()
+
+	// Identify which valid IDs don't exist
+	for _, id := range validIDs {
+		if !existingSet[id] {
+			result.FailedIDs = append(result.FailedIDs, id)
+			result.FailedCount++
+		}
+	}
+
+	// Delete the valid IDs that exist
+	if len(existingSet) > 0 {
+		deleteQuery := `DELETE FROM restaurants WHERE id = ANY($1)`
+		deleteResult, err := tx.Exec(deleteQuery, pq.Array(validIDs))
+		if err != nil {
+			return result, err
+		}
+
+		rowsAffected, err := deleteResult.RowsAffected()
+		if err != nil {
+			return result, err
+		}
+
+		result.DeletedCount = int(rowsAffected)
+
+		// Track which IDs were deleted
+		for id := range existingSet {
+			result.DeletedIDs = append(result.DeletedIDs, id)
+		}
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		return result, err
+	}
+
+	return result, nil
+}
+
+func (pg *PostgresRestaurantStore) BulkDeleteBestEffort(ids []string) (int, error) {
+	// Filter to only valid UUID IDs
+	validIDs := []string{}
+	for _, id := range ids {
+		_, err := uuid.Parse(id)
+		if err != nil {
+			// Skip invalid IDs silently
+			continue
+		}
+		validIDs = append(validIDs, id)
+	}
+
+	// If no valid IDs, return 0
+	if len(validIDs) == 0 {
+		return 0, nil
+	}
+
+	// Delete valid IDs
+	q := `DELETE FROM restaurants WHERE id = ANY($1)`
+	result, err := pg.db.Exec(q, pq.Array(validIDs))
+	if err != nil {
+		return 0, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(rowsAffected), nil
+}
