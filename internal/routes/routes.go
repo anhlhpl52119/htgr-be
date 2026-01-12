@@ -21,5 +21,6 @@ func SetupRoutes(app *app.Application) *chi.Mux {
 	r.Get("/restaurant/{id}", app.RestaurantHandler.HandleGetRestaurantById)
 	r.Patch("/restaurant/{id}", app.RestaurantHandler.HandleUpdateRestaurant)
 	r.Delete("/restaurant/{id}", app.RestaurantHandler.HandleDeleteRestaurant)
+	r.Delete("/restaurants", app.RestaurantHandler.HandleBulkDeleteRestaurants)
 	return r
 }
