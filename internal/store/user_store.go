@@ -2,7 +2,10 @@ package store
 
 import (
 	"database/sql"
+	"errors"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type PostgresUserStore struct {
@@ -52,5 +55,32 @@ func (pg *PostgresUserStore) Create(user *User) error {
 }
 
 func (pg *PostgresUserStore) GetById(id string) (*User, error) {
-	return nil, nil
+	_, err := uuid.Parse(id)
+	if err != nil {
+		return nil, errors.New("invalid id format")
+	}
+	q := `
+	SELECT id, email, role, password_hash, is_active, created_at, updated_at
+	FROM users
+	WHERE id = $1
+	`
+	usr := User{}
+	err = pg.db.QueryRow(q, id).Scan(
+		&usr.ID,
+		&usr.Email,
+		&usr.Role,
+		&usr.PasswordHash,
+		&usr.IsActive,
+		&usr.CreatedAt,
+		&usr.UpdatedAt)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &usr, nil
 }
