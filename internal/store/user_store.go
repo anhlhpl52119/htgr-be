@@ -64,7 +64,7 @@ func (pg *PostgresUserStore) GetById(id string) (*User, error) {
 	FROM users
 	WHERE id = $1
 	`
-	usr := User{}
+	usr := &User{}
 	err = pg.db.QueryRow(q, id).Scan(
 		&usr.ID,
 		&usr.Email,
@@ -82,5 +82,5 @@ func (pg *PostgresUserStore) GetById(id string) (*User, error) {
 		return nil, err
 	}
 
-	return &usr, nil
+	return usr, nil
 }
