@@ -2,7 +2,10 @@ package store
 
 import (
 	"database/sql"
+	"errors"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type PostgresUserPosition struct {
@@ -24,6 +27,8 @@ func NewUserPosition(pgDb *sql.DB) *PostgresUserPosition {
 
 type UserPositionStore interface {
 	Create(*UserPosition) error
+	Update(*UserPosition) error
+	GetById(string) (*UserPosition, error)
 }
 
 func (pg *PostgresUserPosition) Create(pos *UserPosition) error {
@@ -41,4 +46,32 @@ func (pg *PostgresUserPosition) Create(pos *UserPosition) error {
 	}
 
 	return nil
+}
+
+func (pg *PostgresUserPosition) GetById(id string) (*UserPosition, error) {
+	_, err := uuid.Parse(id)
+	if err != nil {
+		return nil, errors.New("invalid id format")
+	}
+	q := `
+	SELECT id, title, created_at, updated_at
+	FROM positions
+	WHERE id = $1
+	`
+	pos := &UserPosition{}
+	err = pg.db.QueryRow(q, id).Scan(
+		&pos.ID,
+		&pos.Title,
+		&pos.CreatedAt,
+		&pos.UpdatedAt)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return pos, nil
 }
