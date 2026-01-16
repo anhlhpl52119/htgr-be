@@ -65,17 +65,11 @@ func (h *UserHandler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := &store.User{
-		Username:     req.Username,
 		Email:        req.Email,
-		Phone:        req.Phone,
 		PasswordHash: "",
 	}
 
-	if req.Bio != "" {
-		user.Bio = req.Bio
-	}
-
-	err = h.userStore.CreateUser(user)
+	err = h.userStore.Create(user)
 
 	if err != nil {
 		h.logger.Printf("ERROR: registering user %v", err)
