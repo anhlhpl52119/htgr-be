@@ -1,0 +1,17 @@
+server:
+  port: 8080
+  environment: "development"
+
+jwt:
+  expiry: "24h"
+
+logger:
+  level: "info"
+  add_source: true
+
+database:
+  host: "localhost"
+  port: 5432
+  name: "postgres"
+  user: "postgres"
+  password: "postgres"

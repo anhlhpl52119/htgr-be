@@ -1,0 +1,3 @@
+_temp/
+.env*
+!.env.sample
