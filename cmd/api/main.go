@@ -32,7 +32,6 @@ func main() {
 		log.Fatalf("db connection failed: %w", err)
 	}
 
-	fmt.Println("** Connect database succesed **")
 	fmt.Println("Checking migration..")
 	err = database.CheckMigration(db.Client.DB, "migrations/")
 	if err != nil {
@@ -66,7 +65,7 @@ func main() {
 	}
 
 	go func() {
-		log.Infow("server listening", "config", cfg.Server)
+		fmt.Printf("\nServer is running...\n[ENV]: \t%s\n[PORT]: \t%d\n", cfg.Server.Environment, cfg.Server.Port)
 		if err := svr.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			log.Errorw("server error", "error", err)
 			os.Exit(1)

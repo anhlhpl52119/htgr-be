@@ -7,10 +7,10 @@ import (
 )
 
 func PrintStruct(s any) {
-	jsonData, err := json.MarshalIndent(s, "", "  ")
+	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(string(jsonData))
+	fmt.Printf("%s\n", data)
 }

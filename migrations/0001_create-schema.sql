@@ -70,19 +70,19 @@ CREATE TABLE IF NOT EXISTS employees (
 -- +goose StatementEnd
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS employees;
 
 
 DROP TABLE IF EXISTS user_roles;
+
+
+DROP TABLE IF EXISTS users;
 
 
 DROP TABLE IF EXISTS roles;
 
 
 DROP TABLE IF EXISTS departments;
-
-
-DROP TABLE IF EXISTS employees;
 
 
 -- +goose StatementEnd
