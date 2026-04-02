@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 	"tiny-goclean/config"
+	"tiny-goclean/internal/database"
 	"tiny-goclean/internal/helpers"
 
 	"github.com/go-chi/chi/v5"
@@ -25,6 +26,18 @@ func main() {
 	helpers.InitLogger(cfg)
 	log := helpers.GetLogger().Sugar()
 	defer log.Sync()
+
+	db, err := database.NewConnection(cfg.Database.ConnectionString())
+	if err != nil {
+		log.Fatalf("db connection failed: %w", err)
+	}
+
+	fmt.Println("** Connect database succesed **")
+	fmt.Println("Checking migration..")
+	err = database.CheckMigration(db.Client.DB, "migrations/")
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RealIP)

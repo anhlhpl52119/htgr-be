@@ -1,6 +1,7 @@
-package db
+package database
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"time"
@@ -48,13 +49,28 @@ func checkConnection(db *sqlx.DB) error {
 	return nil
 }
 
-func CheckMigration(db *sqlx.DB, migrationDir string) error {
+func CheckMigration(db *sql.DB, migrationDir string) error {
 	if err := goose.SetDialect("postgres"); err != nil {
 		return fmt.Errorf("set dialect: %w", err)
 	}
-	vers, err := goose.GetDBVersion(db.DB)
+	vers, err := goose.GetDBVersion(db)
 	if err != nil {
 		return fmt.Errorf("get migration version: %w", err)
 	}
 
+	err = goose.Up(db, migrationDir)
+	if err != nil {
+		return fmt.Errorf("Migrate failed: %w", err)
+	}
+	newVers, err := goose.GetDBVersion(db)
+	if err != nil {
+		return err
+	}
+
+	if newVers > vers {
+		fmt.Printf("Success migrate to version: %d\n", newVers)
+	} else {
+		fmt.Println("No new migration founded")
+	}
+	return nil
 }

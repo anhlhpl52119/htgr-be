@@ -3,7 +3,7 @@
 CREATE TABLE IF NOT EXISTS departments (
   id INT PRIMARY KEY,
   code VARCHAR(30) NOT NULL UNIQUE,
-  name VARCHAR(100) NOT NULL,
+  name VARCHAR(100) NOT NULL
 );
 
 
@@ -13,7 +13,7 @@ VALUES
   (100, 'DEV_FE', 'Front end Dev Team'),
   (200, 'DEV_BE', 'Back end Dev Team'),
   (300, 'BO_HR', 'Back Office HR'),
-  (300, 'BO_FI', 'Back Office Finance');
+  (400, 'BO_FI', 'Back Office Finance');
 
 
 CREATE TABLE IF NOT EXISTS roles (
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   username VARCHAR(50) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 
