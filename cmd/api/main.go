@@ -13,6 +13,7 @@ import (
 	"tiny-goclean/config"
 	"tiny-goclean/internal/database"
 	"tiny-goclean/internal/helpers"
+	"tiny-goclean/internal/services/users"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -57,6 +58,19 @@ func main() {
 		w.Write(b)
 	})
 
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	})
+
+	// // 405 handler (method not allowed)
+	// r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+	// 	w.WriteHeader(http.StatusMethodNotAllowed)
+	// })
+
+	userStore := users.NewStore(db.Client)
+	userHandler := users.NewHandler(userStore)
+	userHandler.RegisterRoutes(r)
+
 	r.Mount("/", r)
 
 	svr := &http.Server{
@@ -64,26 +78,30 @@ func main() {
 		Handler: r,
 	}
 
+	// --- Graceful shutdown ---
+	shutdown := make(chan error)
 	go func() {
-		fmt.Printf("\nServer is running...\n[ENV]: \t%s\n[PORT]: \t%d\n", cfg.Server.Environment, cfg.Server.Port)
-		if err := svr.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			log.Errorw("server error", "error", err)
-			os.Exit(1)
-		}
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		s := <-quit
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		log.Infow("Signal caught", "signal", s.String())
+		shutdown <- svr.Shutdown(ctx)
 	}()
 
-	// --- Graceful shutdown ---
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Infow("shutting down...")
-
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer shutdownCancel()
-
-	if err := svr.Shutdown(shutdownCtx); err != nil {
-		log.Errorw("forced shutdown", "error", err)
-
+	fmt.Printf("\nServer is running...\n[ENV]: \t%s\n[PORT]: \t%d\n", cfg.Server.Environment, cfg.Server.Port)
+	if err := svr.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		log.Errorw("server error", "error", err)
+		os.Exit(1)
 	}
+
+	err = <-shutdown
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Infow("server stopped")
 }

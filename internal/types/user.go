@@ -1,5 +1,8 @@
-package model
+package types
 
+type UserStore interface {
+	Search() ([]User, error)
+}
 type User struct {
 	ID          string  `json:"id" db:"id"`
 	EmployeeID  string  `json:"employee_id" db:"employee_id"`
