@@ -1,6 +1,8 @@
 package users
 
 import (
+	"database/sql"
+	"errors"
 	"tiny-goclean/internal/types"
 
 	"github.com/jmoiron/sqlx"
@@ -29,10 +31,22 @@ func (s *Store) Create(payload types.CreateUserPayload) error {
 	return nil
 }
 
-func (s *Store) GetByUsername(username string) types.User {
+func (s *Store) GetByUsername(username string) (*types.User, error) {
+	var row userRow
+	err := s.db.Get(&row, "SELECT * FROM users WHERE username = $1", username)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
 
-	q := `
-	SELECT * from user
-	`
-	return nil
+	u := &types.User{
+		ID:       row.ID,
+		Username: row.Username,
+		IsActive: row.IsActive,
+	}
+	u.PasswordHash.Set(row.PasswordHash)
+	return u, nil
 }

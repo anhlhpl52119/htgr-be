@@ -20,17 +20,12 @@ type User struct {
 
 type hashedPassword string
 
-func (p *hashedPassword) Set(plainText string) error {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(plainText), 12)
-	if err != nil {
-		return err
-	}
-
+func (p *hashedPassword) Set(hashed string) error {
 	*p = hashedPassword(hashed)
 	return nil
 }
 
-func (p *hashedPassword) Matches(plainText string) (bool, error) {
+func (p *hashedPassword) CompareWith(plainText string) (bool, error) {
 	err := bcrypt.CompareHashAndPassword([]byte(*p), []byte(plainText))
 	if err != nil {
 		switch {
@@ -42,6 +37,16 @@ func (p *hashedPassword) Matches(plainText string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (p *hashedPassword) GenerateFrom(plainText string) error {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(plainText), 12)
+	if err != nil {
+		return err
+	}
+
+	*p = hashedPassword(hashed)
+	return nil
 }
 
 type CreateUserPayload struct {
