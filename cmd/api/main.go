@@ -73,7 +73,8 @@ func main() {
 	})
 
 	userStore := users.NewStore(db.Client)
-	userHandler := users.NewHandler(userStore)
+	userService := users.NewService(userStore)
+	userHandler := users.NewHandler(userService)
 	userHandler.RegisterRoutes(r)
 
 	svr := &http.Server{
