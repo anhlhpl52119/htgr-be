@@ -8,13 +8,14 @@ import (
 
 type UserStore interface {
 	Search() ([]User, error)
+	Create(p CreateUserPayload) error
 }
 
 type User struct {
-	ID           string         `json:"id" db:"id"`
-	Username     string         `json:"username" db:"username"`
-	PasswordHash hashedPassword `json:"oo" db:"password_hash"`
-	IsActive     bool           `json:"is_active" db:"is_active"`
+	ID           string         `json:"id"`
+	Username     string         `json:"username"`
+	PasswordHash hashedPassword `json:"_"`
+	IsActive     bool           `json:"is_active"`
 }
 
 type hashedPassword string
@@ -41,4 +42,10 @@ func (p *hashedPassword) Matches(plainText string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+type CreateUserPayload struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	RoleID   *int   `json:"role_id,omitempty"`
 }
