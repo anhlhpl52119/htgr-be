@@ -30,7 +30,7 @@ func main() {
 
 	db, err := database.NewConnection(cfg.Database.ConnectionString())
 	if err != nil {
-		log.Fatalf("db connection failed: %w", err)
+		log.Fatalf("db connection failed: %v", err)
 	}
 
 	fmt.Println("Checking migration..")
@@ -59,19 +59,22 @@ func main() {
 	})
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		http.NotFound(w, r)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		b, _ := json.MarshalIndent(map[string]string{"error": "not found"}, " ", "")
+		w.Write(b)
 	})
 
-	// // 405 handler (method not allowed)
-	// r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-	// 	w.WriteHeader(http.StatusMethodNotAllowed)
-	// })
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		b, _ := json.MarshalIndent(map[string]string{"error": "method not allowed"}, " ", "")
+		w.Write(b)
+	})
 
 	userStore := users.NewStore(db.Client)
 	userHandler := users.NewHandler(userStore)
 	userHandler.RegisterRoutes(r)
-
-	r.Mount("/", r)
 
 	svr := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -100,6 +103,7 @@ func main() {
 
 	err = <-shutdown
 	if err != nil {
+		log.Sync()
 		log.Fatal(err)
 	}
 
